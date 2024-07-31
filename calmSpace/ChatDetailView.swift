@@ -20,7 +20,7 @@ class ViewModel: ObservableObject {
     }
     
     
-    let openAI = OpenAI(apiToken: "sk-proj-l03IA7n2iVtl8dPfa4soT3BlbkFJObcswFBZJmD99cmYydLU")
+    
     
     func sendNewMessage(content :  String) {
         let userMessage = Message(content: content, isUser: true, timestamp: Date())
