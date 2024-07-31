@@ -9,14 +9,25 @@ import SwiftUI
 import OpenAI
 
 class ViewModel: ObservableObject {
-    @Published var messages: [Message] = [.init(content: "Hello", isUser: true, timestamp: Date()), .init(content: "Hi", isUser: false, timestamp: Date())]
+    @Published var messages: [Message] = [
+        .init(content: "Hello", isUser: true, timestamp: Date()),
+        .init(content: "Hi", isUser: false, timestamp: Date())
+    ]
+    
+    @Published var feedBackOn: Bool = false
+    var toggleText: String {
+        return feedBackOn ? "Feedback On" : "Feedback Off"
+    }
     
     
+    let openAI = OpenAI(apiToken: "sk-proj-l03IA7n2iVtl8dPfa4soT3BlbkFJObcswFBZJmD99cmYydLU")
     
     func sendNewMessage(content :  String) {
         let userMessage = Message(content: content, isUser: true, timestamp: Date())
         self.messages.append(userMessage)
-        getBotReply()
+        if feedBackOn {
+            getBotReply()
+        }
     }
     
     func getBotReply() {
@@ -48,33 +59,42 @@ struct ChatDetailView: View {
     @StateObject var chatController: ViewModel = .init()
     @State var string: String = ""
     var body: some View {
+    VStack {
+        HStack {
+            Toggle(isOn: $chatController.feedBackOn) {
+                Text(chatController.toggleText)
+                    .font(.footnote)
+            }
+            .toggleStyle(SwitchToggleStyle(tint: .purple))
+        }
+        .padding()
         
         Divider()
         
-        VStack {
-            ScrollView {
-                ForEach(chatController.messages) {
-                    message in
-                    MessageView(message: message)
-                        .padding(5)
-                }
-            }
-            
-            Divider()
-            
-            HStack {
-                TextField("Message...", text: self.$string, axis: .vertical)
+        
+        ScrollView {
+            ForEach(chatController.messages) {
+                message in
+                MessageView(message: message)
                     .padding(5)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(15)
-                Button {
-                    self.chatController.sendNewMessage(content: string)
-                    string = ""
-                } label: {
-                    Image(systemName: "paperplane")
-                }
             }
-            .padding()
+        }
+            
+        Divider()
+        
+        HStack {
+            TextField("Message...", text: self.$string, axis: .vertical)
+                .padding(5)
+                .background(Color.gray.opacity(0.3))
+                .cornerRadius(15)
+            Button {
+                self.chatController.sendNewMessage(content: string)
+                string = ""
+            } label: {
+                Image(systemName: "paperplane")
+            }
+        }
+        .padding()
         }
     }
 }
