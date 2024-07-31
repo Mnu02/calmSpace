@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Chat: Identifiable, Decodable {
+struct Chat: Identifiable, Decodable, Hashable {
     var id: String?
     var title: String
     var content: String
