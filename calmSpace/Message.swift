@@ -7,9 +7,9 @@
 
 import Foundation
 
-struct Message: Identifiable, Codable {
-    let id: String
-    let text: String
+struct Message: Identifiable {
+    let id: UUID = .init()
+    let content: String
     let isUser: Bool
     var timestamp: Date
 }

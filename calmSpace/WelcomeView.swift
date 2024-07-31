@@ -7,8 +7,21 @@
 
 import SwiftUI
 
+struct AppViewRouter: Hashable, Equatable {
+    enum Route: Hashable, Equatable {
+        case manyChats
+        case welcome
+    }
+
+    var route: Route
+}
+
 struct WelcomeView: View {
+    
+    @State private var path: [AppViewRouter] = []
+    
     var body: some View {
+        NavigationStack(path: $path) {
             ZStack {
                 LinearGradient(gradient: Gradient(colors: [Color.backgroundColor, Color.purple.opacity(0.3)]), startPoint: .bottom, endPoint: .top)
                     .edgesIgnoringSafeArea(.all)
@@ -31,7 +44,7 @@ struct WelcomeView: View {
                     }
                     .frame(width: 300, height: 50)
                     .padding()
-
+                    
                     NavigationLink(destination : HasAccountView()){
                         Text("I have an account")
                             .font(.subheadline)
@@ -43,7 +56,16 @@ struct WelcomeView: View {
                 }
             }
         }
+        .navigationDestination(for: AppViewRouter.self) { route in
+            switch route.route {
+            case .manyChats:
+                ManyChatsView()
+            case .welcome:
+                WelcomeView()
+            }
+        }
     }
+}
 
 #Preview {
     WelcomeView()

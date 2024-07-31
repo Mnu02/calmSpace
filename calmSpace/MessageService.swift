@@ -28,7 +28,7 @@ class MessageService: ObservableObject {
                        let isUser = document["isUser"] as? Bool,
                        let timestamp = (document["timestamp"] as? Timestamp)?.dateValue() {
                         
-                        let message = Message(id: id, text: text, isUser: isUser, timestamp: timestamp)
+                        let message = Message(content: text, isUser: isUser, timestamp: timestamp)
                         fetchedMessages.append(message)
                     }
                 }
