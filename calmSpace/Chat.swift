@@ -6,10 +6,9 @@
 //
 
 import Foundation
-import FirebaseFirestoreSwift
 
 struct Chat: Identifiable, Decodable {
-    @DocumentID var id: String?
+    var id: String?
     var title: String
     var content: String
     var userId: String

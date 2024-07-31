@@ -6,8 +6,9 @@
 //
 
 import SwiftUI
-import Firebase
+import FirebaseAuth
 import FirebaseCore
+import FirebaseFirestore
 
 struct NoAccountView: View {
     @State private var email: String = ""

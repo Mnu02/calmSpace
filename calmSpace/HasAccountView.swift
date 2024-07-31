@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Firebase
+import FirebaseAuth
 import FirebaseCore
 
 struct HasAccountView: View {

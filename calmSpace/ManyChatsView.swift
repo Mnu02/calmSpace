@@ -1,12 +1,5 @@
-//
-//  ManyChatsView.swift
-//  calmSpace
-//
-//  Created by Mnumzana Franklin Moyo on 7/11/24.
-//
-
 import SwiftUI
-import Firebase
+import FirebaseAuth
 import FirebaseFirestore
 
 struct ManyChatsView: View {
@@ -17,6 +10,8 @@ struct ManyChatsView: View {
     @State private var isLoggedOut: Bool = false
     @State private var isShowingNewChat: Bool = false
     @State private var newChat: Chat? = nil
+    
+    private var sampleChat = Chat(id: "123", title: "My lifestyle", content: "Had a good time yesterday at the park", userId: "Mnumzana")
     
     var body: some View {
         NavigationView {
@@ -101,12 +96,11 @@ struct ManyChatsView: View {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
             .fullScreenCover(isPresented: $isLoggedOut) {
-                WelcomeView()
+                WelcomeView().navigationBarBackButtonHidden(true)
             }
         }
     }
 
-    
     func fetchChats() {
         let db = Firestore.firestore()
         guard let userId = Auth.auth().currentUser?.uid else {
@@ -135,4 +129,3 @@ struct ManyChatsView: View {
 #Preview {
     ManyChatsView()
 }
-
