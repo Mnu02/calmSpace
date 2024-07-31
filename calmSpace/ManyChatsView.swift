@@ -14,7 +14,7 @@ struct ManyChatsView: View {
     private var sampleChat = Chat(id: "123", title: "My lifestyle", content: "Had a good time yesterday at the park", userId: "Mnumzana")
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 HStack {
                     Text("Hello")
@@ -30,7 +30,7 @@ struct ManyChatsView: View {
                 ScrollView {
                     VStack {
                         ForEach(chats) { chat in
-                            NavigationLink(destination: ChatDetailView(chat: chat)) {
+                            NavigationLink(value: chat) {
                                 HStack {
                                     Text(chat.title)
                                         .padding()
@@ -85,8 +85,8 @@ struct ManyChatsView: View {
                 .frame(height: 40)
                 .background(Color.deepPurple)
                 
-                NavigationLink(destination: ChatDetailView(chat: newChat ?? sampleChat), isActive: $isShowingNewChat) {
-                    EmptyView()
+                .navigationDestination(isPresented: $isShowingNewChat) {
+                    ChatDetailView()
                 }
             }
             .onAppear {
@@ -97,6 +97,9 @@ struct ManyChatsView: View {
             }
             .fullScreenCover(isPresented: $isLoggedOut) {
                 WelcomeView().navigationBarBackButtonHidden(true)
+            }
+            .navigationDestination(for: Chat.self) { chat in
+                ChatDetailView()
             }
         }
     }
