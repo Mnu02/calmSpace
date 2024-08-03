@@ -11,8 +11,6 @@ struct ManyChatsView: View {
     @State private var isShowingNewChat: Bool = false
     @State private var newChat: Chat? = nil
     
-    private var sampleChat = Chat(id: "123", title: "My lifestyle", content: "Had a good time yesterday at the park", userId: "Mnumzana")
-    
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -69,10 +67,7 @@ struct ManyChatsView: View {
                     
                     Button(action: {
                         // Create a new chat and navigate to the chat detail view
-                        let newChat = Chat(id: UUID().uuidString, title: "New Chat", content: "", userId: Auth.auth().currentUser?.uid ?? "")
-                        chats.append(newChat)
-                        self.newChat = newChat
-                        isShowingNewChat = true
+                        createNewChat()
                     }) {
                         Image("add-square")
                             .padding()
@@ -86,7 +81,9 @@ struct ManyChatsView: View {
                 .background(Color.deepPurple)
                 
                 .navigationDestination(isPresented: $isShowingNewChat) {
-                    ChatDetailView()
+                    if let newChat = newChat {
+                        ChatDetailView(userID: Auth.auth().currentUser?.uid ?? "", chatID: newChat.id)
+                    }
                 }
             }
             .onAppear {
@@ -99,7 +96,7 @@ struct ManyChatsView: View {
                 WelcomeView().navigationBarBackButtonHidden(true)
             }
             .navigationDestination(for: Chat.self) { chat in
-                ChatDetailView()
+                ChatDetailView(userID: chat.userId, chatID: chat.id)
             }
         }
     }
@@ -112,8 +109,7 @@ struct ManyChatsView: View {
             return
         }
         
-        db.collection("chats")
-            .whereField("userId", isEqualTo: userId)
+        db.collection("users").document(userId).collection("chats")
             .getDocuments { snapshot, error in
                 if let error = error {
                     alertMessage = "Error fetching chats: \(error.localizedDescription)"
@@ -126,6 +122,34 @@ struct ManyChatsView: View {
                     }
                 }
             }
+    }
+    
+    func createNewChat() {
+        let db = Firestore.firestore()
+        guard let userId = Auth.auth().currentUser?.uid else {
+            alertMessage = "User not authenticated"
+            showAlert = true
+            return
+        }
+        
+        let newChatRef = db.collection("users").document(userId).collection("chats").document()
+        let newChat = Chat(id: newChatRef.documentID, title: "New Chat", content: "", userId: userId)
+        
+        do {
+            try newChatRef.setData(from: newChat) { error in
+                if let error = error {
+                    alertMessage = "Error creating new chat: \(error.localizedDescription)"
+                    showAlert = true
+                } else {
+                    self.chats.append(newChat)
+                    self.newChat = newChat
+                    self.isShowingNewChat = true
+                }
+            }
+        } catch let error {
+            alertMessage = "Error creating new chat: \(error.localizedDescription)"
+            showAlert = true
+        }
     }
 }
 
