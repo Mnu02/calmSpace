@@ -1,23 +1,23 @@
-//
-//  MessageService.swift
-//  calmSpace
-//
-//  Created by Mnumzana Franklin Moyo on 7/17/24.
-//
-
 import Foundation
 import Combine
 import FirebaseFirestore
 import FirebaseCore
 
 class MessageService: ObservableObject {
-    // Firestore reference
     private let db = Firestore.firestore()
-    @Published var messages: [Message] = []  // Use @Published to trigger updates
+    private var userID: String
+    private var chatID: String
+
+    @Published var messages: [Message] = []
+    
+    init(userID: String, chatID: String) {
+        self.userID = userID
+        self.chatID = chatID
+    }
     
     // Function to fetch messages
     func fetchMessages(completion: @escaping (Error?) -> Void) {
-        db.collection("messages").getDocuments { (querySnapshot, error) in
+        db.collection("users").document(userID).collection("chats").document(chatID).collection("messages").order(by: "timestamp").getDocuments { (querySnapshot, error) in
             if let error = error {
                 completion(error)
             } else {
@@ -33,10 +33,23 @@ class MessageService: ObservableObject {
                     }
                 }
                 DispatchQueue.main.async {
-                    self.messages = fetchedMessages  // Update @Published property
+                    self.messages = fetchedMessages
                     completion(nil)
                 }
             }
+        }
+    }
+    
+    // Function to save a message
+    func saveMessage(_ message: Message, completion: @escaping (Error?) -> Void) {
+        let messageData: [String: Any] = [
+            "isUser": message.isUser,
+            "content": message.content,
+            "timestamp": message.timestamp
+        ]
+        
+        db.collection("users").document(userID).collection("chats").document(chatID).collection("messages").addDocument(data: messageData) { error in
+            completion(error)
         }
     }
 }
