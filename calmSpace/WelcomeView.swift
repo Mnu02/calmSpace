@@ -11,21 +11,13 @@ import GoogleSignIn
 import GoogleSignInSwift
 import FirebaseCore
 
-struct AppViewRouter: Hashable, Equatable {
-    enum Route: Hashable, Equatable {
-        case manyChats
-        case welcome
-    }
-
-    var route: Route
-}
-
 struct WelcomeView: View {
-    @State private var path: [AppViewRouter] = []
-    @State private var isSigningIn: Bool = false
+    @State private var navigateToManyChats: Bool = false
+    @State private var showAlert: Bool = false
+    @State private var alertMessage: String = ""
 
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack {
             ZStack {
                 LinearGradient(gradient: Gradient(colors: [Color.backgroundColor, Color.purple.opacity(0.3)]), startPoint: .bottom, endPoint: .top)
                     .edgesIgnoringSafeArea(.all)
@@ -37,7 +29,7 @@ struct WelcomeView: View {
                     Spacer()
                         .frame(height: 250)
 
-                    // MARK: Two buttons
+                    // MARK: Google Sign-In Button
                     Button(action: {
                         signInWithGoogle()
                     }) {
@@ -50,67 +42,68 @@ struct WelcomeView: View {
                     }
                     .frame(width: 300, height: 50)
                     .padding()
-
-//                    NavigationLink(destination: HasAccountView()) {
-//                        Text("I have an account")
-//                            .font(.subheadline)
-//                            .foregroundColor(.white)
-//                            .frame(width: 300, height: 50)
-//                            .background(Color.deepPurple)
-//                            .cornerRadius(10)
-//                    }
                 }
             }
-            .alert(isPresented: $isSigningIn) {
-                Alert(title: Text("Signing In..."), message: Text("Please wait while we sign you in with Google."), dismissButton: .default(Text("OK")))
+            .alert(isPresented: $showAlert) {
+                Alert(title: Text("Sign-In Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
-        }
-        .navigationDestination(for: AppViewRouter.self) { route in
-            switch route.route {
-            case .manyChats:
+            .navigationDestination(isPresented: $navigateToManyChats) {
                 ManyChatsView()
-            case .welcome:
-                WelcomeView()
             }
         }
     }
 
     private func signInWithGoogle() {
-            guard let clientID = FirebaseApp.app()?.options.clientID else { return }
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            alertMessage = "Missing Google Client ID"
+            showAlert = true
+            return
+        }
 
-            let config = GIDConfiguration(clientID: clientID)
-            GIDSignIn.sharedInstance.configuration = config
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
 
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let presentingViewController = windowScene.windows.first?.rootViewController else {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let presentingViewController = windowScene.windows.first?.rootViewController else {
+            alertMessage = "Unable to find a valid presenting view controller"
+            showAlert = true
+            return
+        }
+
+        GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController) { result, error in
+            if let error = error {
+                alertMessage = "Error signing in: \(error.localizedDescription)"
+                showAlert = true
                 return
             }
 
-            GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController) { result, error in
+            guard let user = result?.user,
+                  let idToken = user.idToken?.tokenString else {
+                alertMessage = "Error signing in: Unable to get user ID token"
+                showAlert = true
+                return
+            }
+
+            let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: user.accessToken.tokenString)
+
+            Auth.auth().signIn(with: credential) { authResult, error in
                 if let error = error {
-                    print("Error signing in: \(error.localizedDescription)")
-                    return
-                }
-
-                guard let user = result?.user,
-                      let idToken = user.idToken?.tokenString else {
-                    return
-                }
-
-                let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: user.accessToken.tokenString)
-
-                Auth.auth().signIn(with: credential) { authResult, error in
-                    if let error = error {
-                        print("Firebase sign-in error: \(error.localizedDescription)")
+                    alertMessage = "Firebase sign-in error: \(error.localizedDescription)"
+                    showAlert = true
+                } else {
+                    // Ensure the user is signed in and then navigate
+                    if Auth.auth().currentUser != nil {
+                        print("User is signed in: \(String(describing: Auth.auth().currentUser?.uid))")
+                        navigateToManyChats = true
                     } else {
-                        print("User is signed in")
-                        // Navigate to ManyChatsView here
-                        path.append(AppViewRouter(route: .manyChats))
+                        alertMessage = "Sign-in succeeded, but no user found."
+                        showAlert = true
                     }
                 }
             }
         }
     }
+}
 
 #Preview {
     WelcomeView()
