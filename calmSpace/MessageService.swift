@@ -4,27 +4,30 @@ import FirebaseFirestore
 import FirebaseCore
 
 class MessageService: ObservableObject {
+    // Firestore reference
     private let db = Firestore.firestore()
-    private var userID: String
-    private var chatID: String
+    @Published var messages: [Message] = []  // Use @Published to trigger updates
+    private var userId: String
+    private var chatId: String
 
-    @Published var messages: [Message] = []
-    
-    init(userID: String, chatID: String) {
-        self.userID = userID
-        self.chatID = chatID
+    init(userId: String, chatId: String) {
+        self.userId = userId
+        self.chatId = chatId
+        fetchMessages { _ in }
     }
-    
+
     // Function to fetch messages
     func fetchMessages(completion: @escaping (Error?) -> Void) {
-        db.collection("users").document(userID).collection("chats").document(chatID).collection("messages").order(by: "timestamp").getDocuments { (querySnapshot, error) in
+        print("Fetching Messages...")
+        db.collection("users").document(userId).collection("chats").document(chatId).collection("messages").order(by: "timestamp").getDocuments { (querySnapshot, error) in
             if let error = error {
+                print("Error fetching messages: \(error.localizedDescription)")
                 completion(error)
             } else {
                 var fetchedMessages = [Message]()
                 for document in querySnapshot!.documents {
-                    let id = document.documentID
-                    if let text = document["text"] as? String,
+                    //let id = document.documentID
+                    if let text = document["content"] as? String,
                        let isUser = document["isUser"] as? Bool,
                        let timestamp = (document["timestamp"] as? Timestamp)?.dateValue() {
                         
@@ -33,22 +36,22 @@ class MessageService: ObservableObject {
                     }
                 }
                 DispatchQueue.main.async {
-                    self.messages = fetchedMessages
+                    self.messages = fetchedMessages  // Update @Published property
                     completion(nil)
                 }
             }
         }
     }
-    
-    // Function to save a message
-    func saveMessage(_ message: Message, completion: @escaping (Error?) -> Void) {
-        let messageData: [String: Any] = [
-            "isUser": message.isUser,
+
+    // Function to save messages
+    func saveMessage(message: Message, completion: @escaping (Error?) -> Void) {
+        let documentData: [String: Any] = [
             "content": message.content,
+            "isUser": message.isUser,
             "timestamp": message.timestamp
         ]
         
-        db.collection("users").document(userID).collection("chats").document(chatID).collection("messages").addDocument(data: messageData) { error in
+        db.collection("users").document(userId).collection("chats").document(chatId).collection("messages").addDocument(data: documentData) { error in
             completion(error)
         }
     }
