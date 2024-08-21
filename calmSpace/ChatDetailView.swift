@@ -13,18 +13,26 @@ import FirebaseFirestore
 class ViewModel: ObservableObject {
     @Published var messages: [Message] = []
     @Published var feedBackOn: Bool = false
+    
     var toggleText: String {
         return feedBackOn ? "Feedback On" : "Feedback Off"
     }
     
-   
+    let openAI = OpenAI(apiToken: "")
     private var messageService: MessageService
     private var cancellables = Set<AnyCancellable>()
     
-    init(userID: String, chatID: String) {
-        self.messageService = MessageService(userID: userID, chatID: chatID)
-        fetchMessages()
+    init(userId: String, chatId: String) {
+        self.messageService = MessageService(userId: userId, chatId: chatId)
+        self.messageService.fetchMessages { error in
+            if let error = error {
+                print("Error fetching messages: \(error.localizedDescription)")
+            } else {
+                self.messages = self.messageService.messages
+            }
+        }
     }
+    
     
     func fetchMessages() {
         messageService.fetchMessages { error in
@@ -54,7 +62,7 @@ class ViewModel: ObservableObject {
     }
     
     func saveMessageToFirestore(_ message: Message) {
-        messageService.saveMessage(message) { error in
+        messageService.saveMessage(message: message) { error in
             if let error = error {
                 print("Error saving message: \(error)")
             }
@@ -91,10 +99,11 @@ class ViewModel: ObservableObject {
 
 struct ChatDetailView: View {
     @StateObject var chatController: ViewModel
+    @EnvironmentObject var authManager: AuthManager
     @State var string: String = ""
 
     init(userID: String, chatID: String) {
-        _chatController = StateObject(wrappedValue: ViewModel(userID: userID, chatID: chatID))
+        _chatController = StateObject(wrappedValue: ViewModel(userId: userID, chatId: chatID))
     }
 
     var body: some View {
@@ -155,11 +164,11 @@ struct MessageView: View {
                         Text(message.content)
                             .padding(.bottom, 2)
                         Text(formattedTimestamp)
-                            .font(.caption)
+                            .font(.caption2)
                             .foregroundColor(.gray)
                     }
                     .padding()
-                    .background(Color.blue)
+                    .background(Color.purple)
                     .foregroundColor(Color.white)
                     .cornerRadius(15)
                 }
@@ -169,7 +178,7 @@ struct MessageView: View {
                         Text(message.content)
                             .padding(.bottom, 2)
                         Text(formattedTimestamp)
-                            .font(.caption)
+                            .font(.caption2)
                             .foregroundColor(.gray)
                     }
                     .padding()
