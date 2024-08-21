@@ -22,6 +22,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct calmSpaceApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @StateObject private var authManager = AuthManager()
     
     init() {
         FirebaseApp.configure()
@@ -29,8 +30,15 @@ struct calmSpaceApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NavigationView {
+            if authManager.needsVerification {
                 WelcomeView()
+                    .environmentObject(authManager)
+            } else if authManager.isLoggedIn {
+                ManyChatsView()
+                    .environmentObject(authManager)
+            } else {
+                WelcomeView()
+                    .environmentObject(authManager)
             }
         }
     }
