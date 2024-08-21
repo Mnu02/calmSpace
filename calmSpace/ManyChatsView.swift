@@ -4,10 +4,10 @@ import FirebaseFirestore
 
 struct ManyChatsView: View {
     
+    @EnvironmentObject var authManager: AuthManager  // Using the AuthManager
     @State private var chats: [Chat] = []
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
-    @State private var isLoggedOut: Bool = false
     @State private var isShowingNewChat: Bool = false
     @State private var newChat: Chat? = nil
     
@@ -49,8 +49,7 @@ struct ManyChatsView: View {
                     Button(action: {
                         // Log out the user and navigate to the welcome view
                         do {
-                            try Auth.auth().signOut()
-                            isLoggedOut = true
+                            try authManager.signOut()
                         } catch let signOutError as NSError {
                             alertMessage = "Error signing out: \(signOutError.localizedDescription)"
                             showAlert = true
@@ -82,7 +81,7 @@ struct ManyChatsView: View {
                 
                 .navigationDestination(isPresented: $isShowingNewChat) {
                     if let newChat = newChat {
-                        ChatDetailView(userID: Auth.auth().currentUser?.uid ?? "", chatID: newChat.id)
+                        ChatDetailView(userID: authManager.currentUser?.uid ?? "", chatID: newChat.id)
                     }
                 }
             }
@@ -92,7 +91,7 @@ struct ManyChatsView: View {
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
-            .fullScreenCover(isPresented: $isLoggedOut) {
+            .fullScreenCover(isPresented: .constant(!authManager.isLoggedIn)) {
                 WelcomeView().navigationBarBackButtonHidden(true)
             }
             .navigationDestination(for: Chat.self) { chat in
@@ -102,13 +101,13 @@ struct ManyChatsView: View {
     }
 
     func fetchChats() {
-        let db = Firestore.firestore()
-        guard let userId = Auth.auth().currentUser?.uid else {
+        guard let userId = authManager.currentUser?.uid else {
             alertMessage = "User not authenticated"
             showAlert = true
             return
         }
         
+        let db = Firestore.firestore()
         db.collection("users").document(userId).collection("chats")
             .getDocuments { snapshot, error in
                 if let error = error {
@@ -125,13 +124,13 @@ struct ManyChatsView: View {
     }
     
     func createNewChat() {
-        let db = Firestore.firestore()
-        guard let userId = Auth.auth().currentUser?.uid else {
+        guard let userId = authManager.currentUser?.uid else {
             alertMessage = "User not authenticated"
             showAlert = true
             return
         }
         
+        let db = Firestore.firestore()
         let newChatRef = db.collection("users").document(userId).collection("chats").document()
         let newChat = Chat(id: newChatRef.documentID, title: "New Chat", content: "", userId: userId)
         
@@ -152,6 +151,7 @@ struct ManyChatsView: View {
         }
     }
 }
+
 
 #Preview {
     ManyChatsView()
